@@ -1,23 +1,77 @@
-# Cloudformation LAMP stack provisioner
+# Modernized LAMP Stack Deployment
 
+#### Overview
+This Ruby script generates an AWS CloudFormation template to deploy a modernized LAMP stack (Linux, Apache, MariaDB, PHP) adhering to AWS best practices. The deployment ensures security, reliability, and scalability using the AWS Well-Architected Framework.
 
+#### Features
+- **Secure by Design**: Limits access to trusted IP ranges.
+- **Highly Available**: Multi-AZ database setup.
+- **Cost Efficient**: Uses Graviton-based T4g instance types.
+- **Modern OS**: Deploys on Amazon Linux 2023.
+- **Automated Configuration**: Bootstraps LAMP stack at instance initialization.
 
-## This is an example of provisioning a LAMP stack on AWS Cloud
+#### Prerequisites
+1. **VPC and Subnets**:
+   - An existing VPC ID.
+   - A list of subnet IDs within the VPC.
+2. **Key Pair**:
+   - A valid EC2 KeyPair for SSH access.
+3. **Database Credentials**:
+   - Secure values for `DBUsername` and `DBPassword`.
+4. **Ruby Environment**:
+   - Install Ruby and the `cloudformation-ruby-dsl` gem.
 
-## The example implements https://github.com/bazaarvoice/cloudformation-ruby-dsl/
+   ```bash
+   gem install cloudformation-ruby-dsl
+   ```
 
-## The LAMP Stack design:
+#### Parameters
+- `VpcId`: ID of the existing Virtual Private Cloud (VPC).
+- `SubnetIds`: List of subnet IDs within the VPC.
+- `KeyPairName`: Name of an existing EC2 KeyPair for SSH access.
+- `DBUsername`: Database admin username.
+- `DBPassword`: Database admin password.
+- `InstanceType`: EC2 instance type (default: `t4g.micro`).
+- `TrustedCIDR`: CIDR block for trusted network access (default: `192.168.0.0/16`).
 
-#####  1. Multi-AZ ELB to serve HTTP traffic to
-#####  2. WebServer Autoscaling Group with minimum of 2 Apache nodes connected to a
-#####  3. Multi-AZ Amazon RDS database instance for storage.
-#####  4. The LAMP stack is provisioned with Datadog SaaS Monitoring  https://www.datadoghq.com/
-#####  5. In case you want to verify the Datadog implementation, send me a message, providing an email address, so I can add it to access the Datadog Dashboards
+#### Outputs
+- **WebServerPublicIP**: Public IP of the deployed web server.
+- **RDSInstanceEndpoint**: Endpoint address of the RDS database instance.
 
-## To run the stack execute the following actions on your favourite Linux distro
-##### 1. Install Cloudformation-Ruby-DSL: `gem install cloudformation-ruby-dsl`
-##### 2. copy the `config` and `credentials` files to `~/.aws/config` and `~/.aws/credentials`
-##### 3. Run `./cloudformation-lamp.rb create --stack-name lamp`date +%Y%m%d%H%M%S` --parameters "DBPassword=dbpassword123;InstanceType=t2.small;SSHLocation=${IP-ADDRESS}/0;VpcId=vpc-d967c3a3;Subnets=subnet-f91285d7,subnet-c0cf978a;KeyName=cfn-lamp-us-east-1;DBUser=db1"`
-##### 4. The command will provision the application stack for ~10 minutes, due to the Multi-A/Z of the DB Instance and Webserver
-##### 5. The DNS of the last provisioned LAMP Stack is: "http://lamp2-Appli-1991DW2TDASJA-733437319.us-east-1.elb.amazonaws.com"
-##### 6. To access the Webserver nodes, you can use the pem key uploaded to the repository with: `ssh -i ${PATH-TO-PEM}.pem ec2-user@lamp2-Appli-1991DW2TDASJA-733437319.us-east-1.elb.amazonaws.com` and the public DNS of the second Webserver instance `ec2-52-90-95-101.compute-1.amazonaws.com`
+#### Usage
+1. Clone the repository and navigate to the script directory.
+
+   ```bash
+   git clone <repository_url>
+   cd <repository_directory>
+   ```
+
+2. Run the Ruby script to generate the CloudFormation template:
+
+   ```bash
+   ruby modern_aws_lamp.rb > template.yaml
+   ```
+
+3. Deploy the template using AWS CLI or Console:
+
+   **CLI Example**:
+   ```bash
+   aws cloudformation create-stack \
+     --stack-name ModernLAMPStack \
+     --template-body file://template.yaml \
+     --parameters ParameterKey=VpcId,ParameterValue=<VpcId> \
+                  ParameterKey=SubnetIds,ParameterValue="<SubnetId1>,<SubnetId2>" \
+                  ParameterKey=KeyPairName,ParameterValue=<KeyPairName> \
+                  ParameterKey=DBUsername,ParameterValue=<DBUsername> \
+                  ParameterKey=DBPassword,ParameterValue=<DBPassword> \
+                  ParameterKey=InstanceType,ParameterValue=t4g.micro \
+                  ParameterKey=TrustedCIDR,ParameterValue=192.168.0.0/16 \
+     --capabilities CAPABILITY_IAM
+   ```
+
+4. Monitor stack creation via AWS Console or CLI.
+
+#### Notes
+- Ensure the `TrustedCIDR` parameter matches your organization's network.
+- Test with dummy parameters before deploying to production.
+
