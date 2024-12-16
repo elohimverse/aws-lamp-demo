@@ -1,9 +1,9 @@
 #!/usr/bin/env ruby
 
-## AWS CloudFormation Template
-## Author: Rosen Tsaryanski
-## Description: This script deploys a modernized LAMP stack using AWS best practices. 
-## AWS Well-Architected Framework Compliance: Security, Cost Optimization, Reliability, Performance Efficiency, Operational Excellence
+# AWS CloudFormation Template
+# Author: Rosen Tsaryanski
+# Description: This script deploys a modernized LAMP stack using AWS best practices.
+# AWS Well-Architected Framework Compliances covered up to 2024
 
 require 'cloudformation-ruby-dsl/cfntemplate'
 
@@ -11,7 +11,7 @@ template do
   value :AWSTemplateFormatVersion => '2010-09-09'
   value :Description => 'Modernized LAMP Stack Deployment with AWS Best Practices'
 
-  ## Params
+  ## Parameters
   parameter 'VpcId',
             :Type => 'AWS::EC2::VPC::Id',
             :Description => 'VpcId of your existing Virtual Private Cloud (VPC)',
@@ -42,11 +42,16 @@ template do
             :AllowedValues => ['t4g.micro', 't4g.small', 't4g.medium', 't4g.large'],
             :Description => 'Instance type for EC2 instances optimized for cost and performance.'
 
+  parameter 'TrustedCIDR',
+            :Type => 'String',
+            :Default => '192.168.0.0/16',
+            :Description => 'CIDR block for trusted network access to EC2 instances.'
+
   ## Resources
   resource 'WebServerInstance', :Type => 'AWS::EC2::Instance' do
     property :InstanceType, ref('InstanceType')
     property :KeyName, ref('KeyPairName')
-    property :ImageId, 'ami-08c40ec9ead489470' # Latest Amazon Linux 2023 AMI ID
+    property :ImageId, 'ami-08c40ec9ead489470' 
     property :SubnetId, select(0, ref('SubnetIds'))
     property :SecurityGroupIds, [get_att('WebServerSG.GroupId')]
 
@@ -85,11 +90,11 @@ template do
   end
 
   resource 'WebServerSG', :Type => 'AWS::EC2::SecurityGroup' do
-    property :GroupDescription, 'Enable HTTP and SSH access.'
+    property :GroupDescription, 'Enable HTTP and SSH access for trusted networks only.'
     property :VpcId, ref('VpcId')
     property :SecurityGroupIngress, [
-      { CidrIp: '0.0.0.0/0', IpProtocol: 'tcp', FromPort: 22, ToPort: 22 },
-      { CidrIp: '0.0.0.0/0', IpProtocol: 'tcp', FromPort: 80, ToPort: 80 }
+      { CidrIp: ref('TrustedCIDR'), IpProtocol: 'tcp', FromPort: 22, ToPort: 22 },
+      { CidrIp: ref('TrustedCIDR'), IpProtocol: 'tcp', FromPort: 80, ToPort: 80 }
     ]
   end
 
